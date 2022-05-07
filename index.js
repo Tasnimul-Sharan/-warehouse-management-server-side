@@ -39,6 +39,9 @@ async function run() {
     await client.connect();
     const warehouseCollection = client.db("warehouse").collection("management");
     const itemCollection = client.db("warehouse").collection("item");
+    const suppliersCollection = client.db("warehouse").collection("supplier");
+    // const reviewsCollection = client.db("warehouse").collection("review");
+    const reviewCollection = client.db("warehouse").collection("review");
 
     //auth
     app.post("/login", async (req, res) => {
@@ -49,7 +52,7 @@ async function run() {
       res.send({ accessToken });
     });
 
-    //management api
+    //management
     app.get("/management", async (req, res) => {
       const query = {};
       const cursor = warehouseCollection.find(query);
@@ -74,13 +77,11 @@ async function run() {
     app.put("/management/:id", async (req, res) => {
       const id = req.params.id;
       const updateQuantity = req.body;
-      // const stockQuantity = req.body;
       const filter = { _id: ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
         $set: {
           quantity: updateQuantity.quantity,
-          // quantity: stockQuantity.quantity,
         },
       };
       const result = await warehouseCollection.updateOne(
@@ -135,11 +136,19 @@ async function run() {
       res.send(result);
     });
 
-    // app.post("/item", async (req, res) => {
-    //   const myItem = req.body;
-    //   const result = await itemCollection.insertOne(myItem);
-    //   res.send(result);
-    // });
+    app.get("/review", async (req, res) => {
+      const query = {};
+      const cursor = reviewCollection.find(query);
+      const reviews = await cursor.toArray();
+      res.send(reviews);
+    });
+
+    app.get("/supplier", async (req, res) => {
+      const query = {};
+      const cursor = suppliersCollection.find(query);
+      const suppliers = await cursor.toArray();
+      res.send(suppliers);
+    });
   } finally {
   }
 }
