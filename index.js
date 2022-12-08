@@ -40,7 +40,7 @@ async function run() {
     const warehouseCollection = client.db("warehouse").collection("management");
     const itemCollection = client.db("warehouse").collection("item");
     const suppliersCollection = client.db("warehouse").collection("supplier");
-    // const reviewsCollection = client.db("warehouse").collection("review");
+
     const reviewCollection = client.db("warehouse").collection("review");
 
     //auth
@@ -161,3 +161,5 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log("Warehouse server running", port);
 });
+
+module.exports = app;
