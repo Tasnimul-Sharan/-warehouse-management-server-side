@@ -40,10 +40,8 @@ async function run() {
     const warehouseCollection = client.db("warehouse").collection("management");
     const itemCollection = client.db("warehouse").collection("item");
     const suppliersCollection = client.db("warehouse").collection("supplier");
-
     const reviewCollection = client.db("warehouse").collection("review");
 
-    //auth
     app.post("/login", async (req, res) => {
       const user = req.body;
       const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
@@ -52,7 +50,6 @@ async function run() {
       res.send({ accessToken });
     });
 
-    //management
     app.get("/management", async (req, res) => {
       const query = {};
       const cursor = warehouseCollection.find(query);
