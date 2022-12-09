@@ -89,23 +89,23 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/management/:id", async (req, res) => {
-      const id = req.params.id;
-      const stockQuantity = req.body;
-      const filter = { _id: ObjectId(id) };
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: {
-          quantity: stockQuantity.quantity,
-        },
-      };
-      const result = await warehouseCollection.findOneAndUpdate(
-        filter,
-        updateDoc,
-        options
-      );
-      res.send(result);
-    });
+    // app.put("/management/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const stockQuantity = req.body;
+    //   const filter = { _id: ObjectId(id) };
+    //   const options = { upsert: true };
+    //   const updateDoc = {
+    //     $set: {
+    //       quantity: stockQuantity.quantity,
+    //     },
+    //   };
+    //   const result = await warehouseCollection.findOneAndUpdate(
+    //     filter,
+    //     updateDoc,
+    //     options
+    //   );
+    //   res.send(result);
+    // });
 
     app.get("/item", verifyJWT, async (req, res) => {
       const decodedEmail = req.decoded.email;
