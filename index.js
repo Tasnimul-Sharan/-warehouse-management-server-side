@@ -42,6 +42,7 @@ async function run() {
     const suppliersCollection = client.db("warehouse").collection("supplier");
     const reviewCollection = client.db("warehouse").collection("review");
     const userCollection = client.db("warehouse").collection("user");
+    const profileCollection = client.db("warehouse").collection("profile");
 
     app.post("/login", async (req, res) => {
       const user = req.body;
@@ -122,6 +123,28 @@ async function run() {
         { expiresIn: "1d" }
       );
       res.send({ result, token });
+    });
+
+    app.put("/profile/:email", async (req, res) => {
+      const email = req.params.email;
+      const profile = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          name: profile.name,
+          education: profile.education,
+          location: profile.location,
+          phoneNumber: profile.phoneNumber,
+          profileLink: profile.profileLink,
+        },
+      };
+      const result = await profileCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
     });
 
     app.get("/item", verifyJWT, async (req, res) => {
