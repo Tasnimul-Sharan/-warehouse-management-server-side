@@ -1,11 +1,12 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const port = process.env.PORT || 5000;
-require("dotenv").config();
 
 app.use(cors());
 app.use(express.json());
@@ -43,6 +44,8 @@ async function run() {
     const reviewCollection = client.db("warehouse").collection("review");
     const userCollection = client.db("warehouse").collection("user");
     const profileCollection = client.db("warehouse").collection("profile");
+    const orderCollection = client.db("warehouse").collection("orders");
+    const paymentCollection = client.db("warehouse").collection("payments");
 
     app.post("/login", async (req, res) => {
       const user = req.body;
@@ -91,23 +94,6 @@ async function run() {
       res.send(result);
     });
 
-    // app.put("/management/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const stockQuantity = req.body;
-    //   const filter = { _id: ObjectId(id) };
-    //   const options = { upsert: true };
-    //   const updateDoc = {
-    //     $set: {
-    //       quantity: stockQuantity.quantity,
-    //     },
-    //   };
-    //   const result = await warehouseCollection.findOneAndUpdate(
-    //     filter,
-    //     updateDoc,
-    //     options
-    //   );
-    //   res.send(result);
-    // });
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -160,10 +146,64 @@ async function run() {
       }
     });
 
+    app.get("/orders/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const items = await orderCollection.findOne(query);
+      res.send(items);
+    });
+
+    app.get("/orders", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const email = req.query.email;
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = orderCollection.find(query);
+        const myOrders = await cursor.toArray();
+        res.send(myOrders);
+      } else {
+        res.status(403).send({ message: "Forbidden access" });
+      }
+    });
+
     app.post("/item", async (req, res) => {
       const myItem = req.body;
       const result = await itemCollection.insertOne(myItem);
       res.send(result);
+    });
+
+    app.post("/orders", async (req, res) => {
+      const myOrder = req.body;
+      const result = await orderCollection.insertOne(myOrder);
+      res.send(result);
+    });
+
+    app.patch("/orders/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const result = await paymentCollection.insertOne(payment);
+      const updateOrder = await orderCollection.updateOne(filter, updateDoc);
+      res.send({ updateDoc });
+    });
+
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const items = req.body;
+      const price = items.price;
+      console.log(price);
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({ clientSecret: paymentIntent?.client_secret });
     });
 
     app.delete("/item/:id", async (req, res) => {
@@ -180,11 +220,37 @@ async function run() {
       res.send(reviews);
     });
 
+    app.patch("/payments/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          paid: true,
+          pending: payment.pending,
+          status: "shipped",
+        },
+      };
+      const updateOrder = await orderCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send({ updateDoc });
+    });
+
     app.get("/supplier", async (req, res) => {
       const query = {};
       const cursor = suppliersCollection.find(query);
       const suppliers = await cursor.toArray();
       res.send(suppliers);
+    });
+    app.delete("/orders/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const result = await orderCollection.deleteOne(filter);
+      res.send(result);
     });
   } finally {
   }
