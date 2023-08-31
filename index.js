@@ -47,6 +47,16 @@ async function run() {
     const orderCollection = client.db("warehouse").collection("orders");
     const paymentCollection = client.db("warehouse").collection("payments");
 
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email;
+      const requestCount = await userCollection.findOne({ email: requester });
+      if (requestCount.role === "admin") {
+        next();
+      } else {
+        res.status(403).send({ message: "Forbidden" });
+      }
+    };
+
     app.post("/login", async (req, res) => {
       const user = req.body;
       const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
@@ -69,7 +79,19 @@ async function run() {
       res.send(managements);
     });
 
-    app.delete("/management/:id", async (req, res) => {
+    app.get("/users", verifyJWT, async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
+    });
+
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await userCollection.findOne({ email: email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
+
+    app.delete("/management/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await warehouseCollection.deleteOne(query);
@@ -133,6 +155,19 @@ async function run() {
       res.send(result);
     });
 
+    app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
+      const email = req.params.email;
+
+      const filter = { email: email };
+
+      const updateDoc = {
+        $set: { role: "admin" },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+
+      res.send(result);
+    });
+
     app.get("/item", verifyJWT, async (req, res) => {
       const decodedEmail = req.decoded.email;
       const email = req.query.email;
@@ -153,6 +188,11 @@ async function run() {
       res.send(items);
     });
 
+    app.get("/allOrders", verifyJWT, verifyAdmin, async (req, res) => {
+      const allOrderss = await orderCollection.find().toArray();
+      res.send(allOrderss);
+    });
+
     app.get("/orders", verifyJWT, async (req, res) => {
       const decodedEmail = req.decoded.email;
       const email = req.query.email;
@@ -169,6 +209,12 @@ async function run() {
     app.post("/item", async (req, res) => {
       const myItem = req.body;
       const result = await itemCollection.insertOne(myItem);
+      res.send(result);
+    });
+
+    app.post("/management", async (req, res) => {
+      const items = req.body;
+      const result = await warehouseCollection.insertOne(items);
       res.send(result);
     });
 
@@ -250,6 +296,13 @@ async function run() {
       const email = req.params.email;
       const filter = { email: email };
       const result = await orderCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    app.delete("/allOrders/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await orderCollection.deleteOne(query);
       res.send(result);
     });
   } finally {
