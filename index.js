@@ -83,11 +83,87 @@ async function run() {
       res.send({ admin: isAdmin });
     });
 
-    app.delete("/management/:id", verifyJWT, async (req, res) => {
+    app.get("/supplier", async (req, res) => {
+      const query = {};
+      const cursor = suppliersCollection.find(query);
+      const suppliers = await cursor.toArray();
+      res.send(suppliers);
+    });
+
+    app.get("/item", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const email = req.query.email;
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = itemCollection.find(query);
+        const myItems = await cursor.toArray();
+        res.send(myItems);
+      } else {
+        res.status(403).send({ message: "Forbidden access" });
+      }
+    });
+
+    app.get("/orders/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
-      const result = await warehouseCollection.deleteOne(query);
+      const items = await orderCollection.findOne(query);
+      res.send(items);
+    });
+
+    app.get("/allOrders", verifyJWT, verifyAdmin, async (req, res) => {
+      const allOrderss = await orderCollection.find().toArray();
+      res.send(allOrderss);
+    });
+
+    app.get("/orders", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const email = req.query.email;
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = orderCollection.find(query);
+        const myOrders = await cursor.toArray();
+        res.send(myOrders);
+      } else {
+        res.status(403).send({ message: "Forbidden access" });
+      }
+    });
+
+    app.get("/review", async (req, res) => {
+      const query = {};
+      const cursor = reviewCollection.find(query);
+      const reviews = await cursor.toArray();
+      res.send(reviews);
+    });
+
+    app.post("/item", async (req, res) => {
+      const myItem = req.body;
+      const result = await itemCollection.insertOne(myItem);
       res.send(result);
+    });
+
+    app.post("/management", async (req, res) => {
+      const items = req.body;
+      const result = await warehouseCollection.insertOne(items);
+      res.send(result);
+    });
+
+    app.post("/orders", async (req, res) => {
+      const myOrder = req.body;
+      const result = await orderCollection.insertOne(myOrder);
+      res.send(result);
+    });
+
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const items = req.body;
+      const price = items.price;
+      console.log(price);
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({ clientSecret: paymentIntent?.client_secret });
     });
 
     app.put("/management/:id", async (req, res) => {
@@ -160,62 +236,6 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/item", verifyJWT, async (req, res) => {
-      const decodedEmail = req.decoded.email;
-      const email = req.query.email;
-      if (email === decodedEmail) {
-        const query = { email: email };
-        const cursor = itemCollection.find(query);
-        const myItems = await cursor.toArray();
-        res.send(myItems);
-      } else {
-        res.status(403).send({ message: "Forbidden access" });
-      }
-    });
-
-    app.get("/orders/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const items = await orderCollection.findOne(query);
-      res.send(items);
-    });
-
-    app.get("/allOrders", verifyJWT, verifyAdmin, async (req, res) => {
-      const allOrderss = await orderCollection.find().toArray();
-      res.send(allOrderss);
-    });
-
-    app.get("/orders", verifyJWT, async (req, res) => {
-      const decodedEmail = req.decoded.email;
-      const email = req.query.email;
-      if (email === decodedEmail) {
-        const query = { email: email };
-        const cursor = orderCollection.find(query);
-        const myOrders = await cursor.toArray();
-        res.send(myOrders);
-      } else {
-        res.status(403).send({ message: "Forbidden access" });
-      }
-    });
-
-    app.post("/item", async (req, res) => {
-      const myItem = req.body;
-      const result = await itemCollection.insertOne(myItem);
-      res.send(result);
-    });
-
-    app.post("/management", async (req, res) => {
-      const items = req.body;
-      const result = await warehouseCollection.insertOne(items);
-      res.send(result);
-    });
-
-    app.post("/orders", async (req, res) => {
-      const myOrder = req.body;
-      const result = await orderCollection.insertOne(myOrder);
-      res.send(result);
-    });
-
     app.patch("/orders/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const payment = req.body;
@@ -229,33 +249,6 @@ async function run() {
       const result = await paymentCollection.insertOne(payment);
       const updateOrder = await orderCollection.updateOne(filter, updateDoc);
       res.send({ updateDoc });
-    });
-
-    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
-      const items = req.body;
-      const price = items.price;
-      console.log(price);
-      const amount = price * 100;
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: "usd",
-        payment_method_types: ["card"],
-      });
-      res.send({ clientSecret: paymentIntent?.client_secret });
-    });
-
-    app.delete("/item/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const result = await itemCollection.deleteOne(query);
-      res.send(result);
-    });
-
-    app.get("/review", async (req, res) => {
-      const query = {};
-      const cursor = reviewCollection.find(query);
-      const reviews = await cursor.toArray();
-      res.send(reviews);
     });
 
     app.patch("/payments/:id", verifyJWT, async (req, res) => {
@@ -278,12 +271,20 @@ async function run() {
       res.send({ updateDoc });
     });
 
-    app.get("/supplier", async (req, res) => {
-      const query = {};
-      const cursor = suppliersCollection.find(query);
-      const suppliers = await cursor.toArray();
-      res.send(suppliers);
+    app.delete("/management/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await warehouseCollection.deleteOne(query);
+      res.send(result);
     });
+
+    app.delete("/item/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await itemCollection.deleteOne(query);
+      res.send(result);
+    });
+
     app.delete("/orders/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
