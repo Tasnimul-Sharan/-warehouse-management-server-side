@@ -135,6 +135,19 @@ async function run() {
       res.send(reviews);
     });
 
+    app.get("/profile", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const email = req.query.email;
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = profileCollection.find(query);
+        const myProfile = await cursor.toArray();
+        res.send(myProfile);
+      } else {
+        res.status(403).send({ message: "Forbidden access" });
+      }
+    });
+
     app.post("/item", async (req, res) => {
       const myItem = req.body;
       const result = await itemCollection.insertOne(myItem);
@@ -213,6 +226,7 @@ async function run() {
           location: profile.location,
           phoneNumber: profile.phoneNumber,
           profileLink: profile.profileLink,
+          image: profile.image,
         },
       };
       const result = await profileCollection.updateOne(
