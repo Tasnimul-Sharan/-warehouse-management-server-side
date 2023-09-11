@@ -166,6 +166,12 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/reviews", async (req, res) => {
+      const addReviews = req.body;
+      const result = await reviewCollection.insertOne(addReviews);
+      res.send(result);
+    });
+
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
       const items = req.body;
       const price = items.price;
