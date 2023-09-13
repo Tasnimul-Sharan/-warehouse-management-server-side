@@ -90,18 +90,18 @@ async function run() {
       res.send(suppliers);
     });
 
-    app.get("/item", verifyJWT, async (req, res) => {
-      const decodedEmail = req.decoded.email;
-      const email = req.query.email;
-      if (email === decodedEmail) {
-        const query = { email: email };
-        const cursor = itemCollection.find(query);
-        const myItems = await cursor.toArray();
-        res.send(myItems);
-      } else {
-        res.status(403).send({ message: "Forbidden access" });
-      }
-    });
+    // app.get("/item", verifyJWT, async (req, res) => {
+    //   const decodedEmail = req.decoded.email;
+    //   const email = req.query.email;
+    //   if (email === decodedEmail) {
+    //     const query = { email: email };
+    //     const cursor = itemCollection.find(query);
+    //     const myItems = await cursor.toArray();
+    //     res.send(myItems);
+    //   } else {
+    //     res.status(403).send({ message: "Forbidden access" });
+    //   }
+    // });
 
     app.get("/orders/:id", async (req, res) => {
       const id = req.params.id;
@@ -148,11 +148,11 @@ async function run() {
       }
     });
 
-    app.post("/item", async (req, res) => {
-      const myItem = req.body;
-      const result = await itemCollection.insertOne(myItem);
-      res.send(result);
-    });
+    // app.post("/item", async (req, res) => {
+    //   const myItem = req.body;
+    //   const result = await itemCollection.insertOne(myItem);
+    //   res.send(result);
+    // });
 
     app.post("/management", async (req, res) => {
       const items = req.body;
@@ -298,12 +298,12 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/item/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const result = await itemCollection.deleteOne(query);
-      res.send(result);
-    });
+    // app.delete("/item/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: ObjectId(id) };
+    //   const result = await itemCollection.deleteOne(query);
+    //   res.send(result);
+    // });
 
     app.delete("/orders/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
